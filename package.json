@@ -1,0 +1,65 @@
+{
+  "name": "my-electron-app",
+  "version": "1.0.0",
+  "description": "Electron + Vite + React 桌面快速启动搜索工具",
+  "main": "main.js",
+  "author": "QingYiirz",
+  "license": "MIT",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "dev:renderer": "vite",
+    "dev:electron": "electron .",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "electron .",
+    "dist": "yarn build && electron-builder",
+    "dist:mac": "yarn build && electron-builder --mac",
+    "dist:win": "yarn build && electron-builder --win",
+    "dist:dir": "yarn build && electron-builder --dir"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "concurrently": "^9.0.0",
+    "electron": "^28.2.0",
+    "electron-builder": "^26.0.12",
+    "typescript": "^5.5.0",
+    "vite": "^5.0.0",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.qingyiirz.myelectronapp",
+    "productName": "My Electron App",
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "icon": "build/icon.ico"
+    }
+  }
+}
