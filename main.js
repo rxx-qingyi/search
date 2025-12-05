@@ -240,6 +240,8 @@ app.whenReady().then(() => {
   }
 
   createWindow();
+  // 默认创建状态栏入口，避免手动隐藏窗口后找不到入口
+  createTray();
   registerGlobalShortcuts();
   setupIpc();
 

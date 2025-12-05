@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DragBar } from "./components/DragBar";
 import { SearchView } from "./components/SearchView";
 import { SettingsView } from "./components/SettingsView";
@@ -9,6 +9,7 @@ import { filterItems } from "./utils/search";
 import { calculateHeight } from "./utils/window";
 import { SETTINGS_HEIGHT } from "./constants";
 import type { ViewType, Project, FavoriteSite } from "./types";
+import { listBookmarks } from "./services/bookmarks";
 
 const FAVORITES_HEIGHT = 600;
 
@@ -26,6 +27,23 @@ function App(): JSX.Element {
       return [];
     }
   });
+  const [authToken, setAuthToken] = useState<string>(() => {
+    try {
+      return localStorage.getItem("authToken") || "";
+    } catch {
+      return "";
+    }
+  });
+  const [authUsername, setAuthUsername] = useState<string>(() => {
+    try {
+      return localStorage.getItem("authUsername") || "";
+    } catch {
+      return "";
+    }
+  });
+  const [isSyncingFavorites, setIsSyncingFavorites] = useState(false);
+  const [favoriteSyncMessage, setFavoriteSyncMessage] = useState("");
+  const isLoggedIn = Boolean(authToken);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // 窗口拖动逻辑
@@ -46,6 +64,63 @@ function App(): JSX.Element {
       console.error("Failed to save favorite sites:", e);
     }
   }, [favoriteSites]);
+
+  // 保存登录 token
+  useEffect(() => {
+    try {
+      if (authToken) {
+        localStorage.setItem("authToken", authToken);
+      } else {
+        localStorage.removeItem("authToken");
+      }
+    } catch (e) {
+      console.error("Failed to save auth token:", e);
+    }
+  }, [authToken]);
+
+  useEffect(() => {
+    try {
+      if (authUsername) {
+        localStorage.setItem("authUsername", authUsername);
+      } else {
+        localStorage.removeItem("authUsername");
+      }
+    } catch (e) {
+      console.error("Failed to save auth username:", e);
+    }
+  }, [authUsername]);
+
+  const refreshFavoritesFromServer = useCallback(
+    async (reason: "init" | "login" | "manual" | "after-add" = "manual"): Promise<void> => {
+      if (!authToken) {
+        setFavoriteSyncMessage("未登录，使用本地收藏");
+        return;
+      }
+      setIsSyncingFavorites(true);
+      setFavoriteSyncMessage(
+        reason === "init" || reason === "login" ? "正在加载收藏..." : "正在刷新收藏..."
+      );
+      try {
+        const list = await listBookmarks(authToken);
+        const mapped: FavoriteSite[] = (list || [])
+          .map((item) => ({
+            id: item.id || item.url || item.name || Date.now().toString(),
+            name: item.name,
+            url: item.url,
+            keywords: item.keywords
+          }))
+          .filter((item) => Boolean(item.name && item.url));
+        setFavoriteSites(mapped);
+        setFavoriteSyncMessage("已从服务器获取收藏");
+      } catch (e) {
+        console.error("Failed to fetch bookmarks:", e);
+        setFavoriteSyncMessage("获取收藏失败，已使用本地缓存");
+      } finally {
+        setIsSyncingFavorites(false);
+      }
+    },
+    [authToken, setFavoriteSites]
+  );
 
   // 搜索结果
   const results = useMemo(() => {
@@ -117,6 +192,27 @@ function App(): JSX.Element {
     }
   };
 
+  // 登录成功
+  const handleLoginSuccess = (token: string, username?: string): void => {
+    setAuthToken(token);
+    if (username) {
+      setAuthUsername(username);
+    }
+  };
+
+  // 退出登录
+  const handleLogout = (): void => {
+    setAuthToken("");
+    setAuthUsername("");
+  };
+
+  // 启动时如果已登录，拉取收藏列表
+  useEffect(() => {
+    if (authToken) {
+      void refreshFavoritesFromServer("init");
+    }
+  }, [authToken, refreshFavoritesFromServer]);
+
   // 设置页面：选择项目根目录
   const handleSelectProjectRoot = async (): Promise<void> => {
     if (!window.electronAPI?.selectProjectRoot) return;
@@ -169,12 +265,21 @@ function App(): JSX.Element {
           onBack={handleBackToSearch}
           onSelectProjectRoot={handleSelectProjectRoot}
           onOpenFavorites={handleOpenFavorites}
+          authToken={authToken}
+          authUsername={authUsername}
+          onLoginSuccess={handleLoginSuccess}
+          onLogout={handleLogout}
         />
       )}
       {view === "favorites" && (
         <FavoritesView
           favoriteSites={favoriteSites}
           setFavoriteSites={setFavoriteSites}
+          isLoggedIn={isLoggedIn}
+          authToken={authToken}
+          onRefreshFromServer={() => refreshFavoritesFromServer("manual")}
+          isSyncingFavorites={isSyncingFavorites}
+          favoriteSyncMessage={favoriteSyncMessage}
           onBack={handleBackToSearch}
         />
       )}

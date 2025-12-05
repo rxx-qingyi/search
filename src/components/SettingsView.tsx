@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Project, FavoriteSite } from "../types";
+import { login } from "../services/auth";
 
 interface SettingsViewProps {
   projectRoot: string;
@@ -8,6 +9,10 @@ interface SettingsViewProps {
   onBack: () => void;
   onSelectProjectRoot: () => Promise<void>;
   onOpenFavorites: () => void;
+  authToken?: string;
+  authUsername?: string;
+  onLoginSuccess: (token: string, username?: string) => void;
+  onLogout: () => void;
 }
 
 /**
@@ -19,9 +24,59 @@ export function SettingsView({
   favoriteSites,
   onBack,
   onSelectProjectRoot,
-  onOpenFavorites
+  onOpenFavorites,
+  authToken,
+  authUsername,
+  onLoginSuccess,
+  onLogout
 }: SettingsViewProps): JSX.Element {
   const [statusBarMode, setStatusBarMode] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginStatus, setLoginStatus] = useState<string>("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  const isLoggedIn = Boolean(authToken);
+
+  const handleLogin = async (): Promise<void> => {
+    if (isLoggedIn) {
+      setLoginStatus("已登录，无需重复登录");
+      return;
+    }
+    if (!username.trim() || !password.trim()) {
+      setLoginStatus("请输入用户名和密码");
+      return;
+    }
+    setIsLoggingIn(true);
+    setLoginStatus("登录中...");
+    try {
+      const resp = await login({ username: username.trim(), password });
+      if (resp?.token) {
+        const displayName =
+          resp.username ||
+          (resp as { name?: string }).name ||
+          (resp as { user?: { username?: string; name?: string } }).user?.username ||
+          (resp as { user?: { username?: string; name?: string } }).user?.name ||
+          username.trim();
+        onLoginSuccess(resp.token, displayName);
+        setUsername(displayName);
+        setLoginStatus("登录成功");
+      } else {
+        setLoginStatus("登录失败：未返回 token");
+      }
+    } catch (e) {
+      console.error("Login failed:", e);
+      setLoginStatus("登录失败，请检查账号/密码或网络");
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = (): void => {
+    onLogout();
+    setLoginStatus("已退出登录");
+    setPassword("");
+  };
 
   return (
     <div className="settings-root">
@@ -32,6 +87,56 @@ export function SettingsView({
         </button>
       </div>
       <div className="settings-content">
+        <div className="settings-section">
+          <div className="settings-section-title">账号登录</div>
+          {isLoggedIn ? (
+            <div className="settings-field">
+              <span className="settings-label">当前用户</span>
+              <span style={{ fontSize: 13, color: "#333" }}>
+                {authUsername || username || "已登录"}
+              </span>
+            </div>
+          ) : (
+            <>
+              <div className="settings-field">
+                <span className="settings-label">用户名</span>
+                <input
+                  className="settings-input"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="请输入用户名"
+                />
+              </div>
+              <div className="settings-field">
+                <span className="settings-label">密码</span>
+                <input
+                  className="settings-input"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="请输入密码"
+                />
+              </div>
+            </>
+          )}
+          <div className="settings-field" style={{ gap: 8 }}>
+            <button className="settings-close" onClick={handleLogin} disabled={isLoggingIn || isLoggedIn}>
+              {isLoggedIn ? "已登录" : isLoggingIn ? "登录中..." : "登录"}
+            </button>
+            <button className="settings-close" onClick={handleLogout} disabled={!isLoggedIn}>
+              退出登录
+            </button>
+            <span style={{ fontSize: 12, color: isLoggedIn ? "#2d8a34" : "#999" }}>
+              {isLoggedIn ? "已登录，可同步收藏" : "未登录，收藏仅存本地"}
+            </span>
+          </div>
+          {loginStatus && (
+            <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
+              {loginStatus}
+            </div>
+          )}
+        </div>
         <div className="settings-section">
           <div className="settings-section-title">通用</div>
           <label className="settings-field">
