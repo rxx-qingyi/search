@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, ipcMain, shell, dialog, Tray, nativeImage } = require("electron");
+const { app, BrowserWindow, globalShortcut, ipcMain, shell, dialog, Tray, nativeImage, Menu } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const { exec } = require("child_process");
@@ -8,6 +8,56 @@ let isDragging = false;
 let dragStart = { mouseX: 0, mouseY: 0, winX: 0, winY: 0 };
 let tray = null;
 let statusBarMode = false;
+
+/**
+ * 为 macOS 设置中文菜单栏
+ */
+function setupMenu() {
+  const template = [
+    {
+      label: "应用",
+      submenu: [
+        {
+          label: "关于",
+          click: () => {
+            if (app.showAboutPanel) {
+              app.showAboutPanel();
+            }
+          }
+        },
+        { type: "separator" },
+        { label: "隐藏", role: "hide" },
+        { label: "隐藏其他", role: "hideOthers" },
+        { label: "全部显示", role: "unhide" },
+        { type: "separator" },
+        { label: "退出", role: "quit" }
+      ]
+    },
+    {
+      label: "编辑",
+      submenu: [
+        { label: "撤销", role: "undo" },
+        { label: "重做", role: "redo" },
+        { type: "separator" },
+        { label: "剪切", role: "cut" },
+        { label: "复制", role: "copy" },
+        { label: "粘贴", role: "paste" },
+        { label: "全选", role: "selectAll" }
+      ]
+    },
+    {
+      label: "窗口",
+      submenu: [
+        { label: "最小化", role: "minimize" },
+        { label: "关闭窗口", role: "close" },
+        { label: "前置所有窗口", role: "front" }
+      ]
+    }
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
 
 function createTray() {
   if (tray || process.platform !== "darwin") return;
@@ -240,6 +290,7 @@ app.whenReady().then(() => {
   }
 
   createWindow();
+  setupMenu();
   // 默认创建状态栏入口，避免手动隐藏窗口后找不到入口
   createTray();
   registerGlobalShortcuts();

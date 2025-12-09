@@ -80,7 +80,7 @@ export function SettingsView({
 
   return (
     <div className="settings-root">
-      <div className="settings-header">
+      <div className="settings-header drag-region">
         <span className="settings-title">设置</span>
         <button className="settings-close" onClick={onBack}>
           返回

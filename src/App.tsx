@@ -18,6 +18,7 @@ function App(): JSX.Element {
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [view, setView] = useState<ViewType>("search");
   const [projectRoot, setProjectRoot] = useState<string>("");
+  const [isComposing, setIsComposing] = useState<boolean>(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [favoriteSites, setFavoriteSites] = useState<FavoriteSite[]>(() => {
     try {
@@ -167,6 +168,11 @@ function App(): JSX.Element {
       return;
     }
 
+    // 中文输入法选词时不执行快捷键
+    if (e.nativeEvent.isComposing || isComposing) {
+      return;
+    }
+
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setSelectedIndex((prev) => Math.min(prev + 1, results.length - 1));
@@ -238,6 +244,7 @@ function App(): JSX.Element {
   return (
     <div className="app-root">
       <DragBar
+        className={view === "search" ? "drag-bar--plain" : "drag-bar--colored"}
         onMouseDown={handleDragMouseDown}
         onMouseMove={handleDragMouseMove}
         onMouseUp={handleDragMouseUp}
@@ -254,6 +261,8 @@ function App(): JSX.Element {
           onInputMouseDown={inputMouseDown}
           onInputMouseMove={inputMouseMove}
           onInputMouseUp={inputMouseUp}
+          onCompositionStart={() => setIsComposing(true)}
+          onCompositionEnd={() => setIsComposing(false)}
           onItemClick={performAction}
         />
       )}

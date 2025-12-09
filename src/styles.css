@@ -30,8 +30,30 @@ body {
 }
 
 .drag-bar {
-  height: 10px;
+  height: 14px;
   -webkit-app-region: drag;
+}
+
+.drag-bar--plain {
+  background: transparent;
+  border-bottom: 1px solid transparent;
+}
+
+.drag-bar--colored {
+  background: #f5f7fa;
+  border-bottom: 1px solid #e5e8ec;
+}
+
+.drag-region {
+  -webkit-app-region: drag;
+  background: #f5f7fa;
+}
+
+button,
+input,
+select,
+textarea {
+  -webkit-app-region: no-drag;
 }
 
 .search-container {

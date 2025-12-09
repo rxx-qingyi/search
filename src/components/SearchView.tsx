@@ -14,6 +14,8 @@ interface SearchViewProps {
   onInputMouseDown: (e: React.MouseEvent<HTMLInputElement>) => void;
   onInputMouseMove: (e: React.MouseEvent<HTMLInputElement>) => void;
   onInputMouseUp: () => void;
+  onCompositionStart: () => void;
+  onCompositionEnd: () => void;
   onItemClick: (item: SearchItem) => void;
 }
 
@@ -31,6 +33,8 @@ export function SearchView({
   onInputMouseDown,
   onInputMouseMove,
   onInputMouseUp,
+  onCompositionStart,
+  onCompositionEnd,
   onItemClick
 }: SearchViewProps): JSX.Element {
   return (
@@ -49,6 +53,8 @@ export function SearchView({
           onMouseDown={onInputMouseDown}
           onMouseMove={onInputMouseMove}
           onMouseUp={onInputMouseUp}
+          onCompositionStart={onCompositionStart}
+          onCompositionEnd={onCompositionEnd}
         />
       </div>
       {results.length > 0 && (
