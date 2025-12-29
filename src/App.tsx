@@ -3,6 +3,7 @@ import { DragBar } from "./components/DragBar";
 import { SearchView } from "./components/SearchView";
 import { SettingsView } from "./components/SettingsView";
 import { FavoritesView } from "./components/FavoritesView";
+import { JsonEditorPage } from "./components/JsonEditorPage";
 import { useWindowDrag } from "./hooks/useWindowDrag";
 import { useActionHandler } from "./hooks/useActionHandler";
 import { filterItems } from "./utils/search";
@@ -12,14 +13,28 @@ import type { ViewType, Project, FavoriteSite } from "./types";
 import { listBookmarks } from "./services/bookmarks";
 
 const FAVORITES_HEIGHT = 600;
+const JSON_EDITOR_HEIGHT = 720;
 
 function App(): JSX.Element {
   const [query, setQuery] = useState<string>("");
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [view, setView] = useState<ViewType>("search");
-  const [projectRoot, setProjectRoot] = useState<string>("");
+  const [projectRoot, setProjectRoot] = useState<string>(() => {
+    try {
+      return localStorage.getItem("projectRoot") || "";
+    } catch {
+      return "";
+    }
+  });
   const [isComposing, setIsComposing] = useState<boolean>(false);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<Project[]>(() => {
+    try {
+      const stored = localStorage.getItem("projects");
+      return stored ? (JSON.parse(stored) as Project[]) : [];
+    } catch {
+      return [];
+    }
+  });
   const [favoriteSites, setFavoriteSites] = useState<FavoriteSite[]>(() => {
     try {
       const stored = localStorage.getItem("favoriteSites");
@@ -65,6 +80,40 @@ function App(): JSX.Element {
       console.error("Failed to save favorite sites:", e);
     }
   }, [favoriteSites]);
+
+  // 保存项目根路径
+  useEffect(() => {
+    try {
+      if (projectRoot) {
+        localStorage.setItem("projectRoot", projectRoot);
+      } else {
+        localStorage.removeItem("projectRoot");
+      }
+    } catch {
+      // ignore
+    }
+  }, [projectRoot]);
+
+  // 保存项目列表
+  useEffect(() => {
+    try {
+      localStorage.setItem("projects", JSON.stringify(projects));
+    } catch {
+      // ignore
+    }
+  }, [projects]);
+
+  // 根据已保存的项目根目录恢复项目列表
+  useEffect(() => {
+    if (!projectRoot || !window.electronAPI?.readProjects) {
+      setProjects([]);
+      return;
+    }
+    void (async () => {
+      const list = await window.electronAPI.readProjects(projectRoot);
+      setProjects(list || []);
+    })();
+  }, [projectRoot]);
 
   // 保存登录 token
   useEffect(() => {
@@ -155,6 +204,8 @@ function App(): JSX.Element {
       window.electronAPI.resizeWindow(SETTINGS_HEIGHT);
     } else if (view === "favorites") {
       window.electronAPI.resizeWindow(FAVORITES_HEIGHT);
+    } else if (view === "json-editor") {
+      window.electronAPI.resizeWindow(JSON_EDITOR_HEIGHT);
     } else {
       const height = calculateHeight(results.length);
       window.electronAPI.resizeWindow(height);
@@ -292,6 +343,7 @@ function App(): JSX.Element {
           onBack={handleBackToSearch}
         />
       )}
+      {view === "json-editor" && <JsonEditorPage onBack={handleBackToSearch} />}
     </div>
   );
 }

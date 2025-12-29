@@ -29,6 +29,13 @@ export function useActionHandler({
       return;
     }
 
+    if (item.action === "json-editor") {
+      setView("json-editor");
+      setSelectedIndex(0);
+      window.electronAPI?.resizeWindow(SETTINGS_HEIGHT);
+      return;
+    }
+
     if (item.action === "favorites") {
       setView("favorites");
       setSelectedIndex(0);

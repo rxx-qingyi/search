@@ -34,7 +34,7 @@ export interface FavoriteSite {
 }
 
 // 视图类型
-export type ViewType = "search" | "settings" | "favorites";
+export type ViewType = "search" | "settings" | "favorites" | "json-editor";
 
 // Electron API 类型定义
 export interface ElectronAPI {

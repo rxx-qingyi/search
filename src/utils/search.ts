@@ -77,6 +77,18 @@ export function filterItems(
     });
   }
 
+  // 输入包含 json 时，提供 JSON 编辑器入口
+  if (q.includes("json")) {
+    list.push({
+      type: "page",
+      icon: "🧩",
+      title: "打开 JSON 编辑器",
+      desc: "json editor",
+      content: "打开设置页中的 JSON 编辑器",
+      action: "json-editor"
+    });
+  }
+
   // 追加 Google 搜索
   const googleItem: SearchItem = {
     type: "web",
